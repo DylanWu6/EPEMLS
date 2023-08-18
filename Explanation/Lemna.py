@@ -20,6 +20,7 @@ def em_regression_algorithm(data, labels, K, alpha_S, iterations, linreg_type, v
     sparse = True if type(data).__module__ == 'scipy.sparse.csr' else False
     no_samples = data.shape[0]
     sample_len = data.shape[1]
+
     label_sum = np.sum(np.abs(labels))
     no_ones = len(np.where(labels == 1)[0])
     no_zeros = len(labels) - no_ones

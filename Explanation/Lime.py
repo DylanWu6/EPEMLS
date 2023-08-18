@@ -3,6 +3,7 @@ import pickle as pkl
 import argparse
 import time
 import sys
+import os
 from sklearn.linear_model import Ridge
 from tqdm import tqdm
 from scipy.spatial.distance import cosine
@@ -61,6 +62,46 @@ def explain_samples(perturbations, labels, random_state=None):
                                                                                            ))
     return relevances
 
+def mimicus_recover(save_path):
+    recovered = []
+    array = np.load("../NetworkTraining/Mimicus/result/zero_index2.npy", allow_pickle=True)
+    with open(save_path, 'rb') as f:
+        data = pkl.load(f)
+        x = 0
+        for i in array:
+            for j in i:
+                item = [0] * 135
+                y = 0
+                for k in j:
+                    item[k] = data[x][y]
+                    y = y + 1
+                recovered.append(item)
+            x = x + 1
+
+
+def main_lime(perturbation_path, label_path, save_path, data_path):
+    perturbations = pkl.load(open(perturbation_path, 'rb'))
+    labels = np.load(label_path)
+    if data_path:
+        is_sparse = data_path.split('.')[-1] == 'npz'
+        if data_path.split('.')[-1] == 'npy':
+            data = np.load(data_path)
+        elif data_path.split('.')[-1] == 'pkl':
+            data = pkl.load(open(data_path, 'rb'))
+        elif args.data_path.split('.')[-1] == 'npz':
+            data = load_npz(data_path)
+        else:
+            print('Data format was not understood. Data could not be loaded.')
+            sys.exit(1)
+    rels = explain_samples(perturbations, labels)
+    if args.data_path:
+        linreg_relevances_to_vector_space(rels, data, save_path, is_sparse)
+    else:
+        pkl.dump(rels, open(save_path+'relevances_lime.pkl', 'wb'))
+
+    mimicus_recover(save_path = save_path)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Implementation of the LIME algorithm.')
     parser.add_argument('perturbation_path', type=str,
@@ -89,3 +130,5 @@ if __name__ == '__main__':
         linreg_relevances_to_vector_space(rels, data, args.save_path, is_sparse)
     else:
         pkl.dump(rels, open(args.save_path+'relevances_lime.pkl', 'wb'))
+
+    mimicus_recover(save_path = args.save_path)

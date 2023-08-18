@@ -1,7 +1,7 @@
-# 解释方法
+# Explanations
 
-该文件夹包含使用LIME和LEMNA来创建网络架构解释的脚本。这些脚本可用于分析和解释机器学习模型，使其更具可解释性。我们的文章发现，黑盒方法的效果普遍比白盒方法更差，因此我们提供了这些脚本的实现部分代码。为了更好地使用这些脚本，以下是一些额外的详细说明：
+This folder contains scripts to create explanations for the network architectures using LIME ([Ribeiro et al.](https://www.kdd.org/kdd2016/papers/files/rfp0573-ribeiroA.pdf)) and LEMNA ([Guo et al.](http://people.cs.vt.edu/gangwang/ccs18.pdf)). Based on the finding of our paper we do not recommend to use these methods but [white-box methods](https://github.com/albermax/innvestigate) instead. Still, we want to publish our implementations for the sake of open access.
 
-- 此存储库的使用输入数据可以是两种类型。第一种类型是numpy数组，形状为(n_samples, n_features)，例如Mimicus或VulDeePecker。第二种类型是长度为n_samples的列表，其中列表中的每个条目都是不同长度的numpy数组，例如DAMD。这些脚本的灵活性使其适用于多种类型的输入数据，无论使用的是哪种类型的数据，都可以使用这些脚本来分析和解释模型。
-- 要使用LIME或LEMNA，首先需要对数据进行扰动。您可以运行`perturbation_sampling.py`来了解如何生成扰动。扰动是将原始数据集添加随机噪声的技术，这可以帮助我们更好地理解机器学习模型的行为。如果您想了解更多关于扰动的内容，请查看我们的文章。
-- 有了扰动，可以计算模型使用的要素的相关性。通过运行`Lemna.py`等可以得到结果。这些结果可以帮助您更好地理解模型，以及在不同条件下模型的行为。此外，我们还提供了其他一些脚本和代码，以帮助您更好地分析和解释您的模型。例如，我们提供了用于绘制LIME和LEMNA解释结果的代码，以及用于计算模型的真实性能的代码。
+* The input data for usage of this repository can be of three types: numpy array of shape (n_samples, n_features) like in Mimicus or VulDeePecker, scipy.sparse.csr_matrix of shape (n_samples, n_features) like in Drebin or a list of length n_samples where each entry in the list is a numpy array of different length like in DAMD, for example.
+* To use LIME or LEMNA you firstly need perturbations of the data. You can call  `python3 perturbation_sampling.py --help` to find out how to generate them.
+* With the perturbations you can calculate relevances for the features your models use. Check `python3 Lemna.py --help` or `python3 Lime.py --help` to find out how.

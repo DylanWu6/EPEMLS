@@ -1,3 +1,4 @@
+from .utils import load_npy_npz_pkl
 import numpy as np
 from scipy import sparse
 import pickle as pkl
@@ -6,11 +7,11 @@ import os
 import argparse
 from tqdm import tqdm
 from keras.models import load_model
-from Explanation import custom_metrics
-from NetworkTraining.Mimicus import custom_metrics as custom_metrics2
-from utils import load_npy_npz_pkl
-import custom_metrics
+sys.path.append('')
 
+
+
+zero_index = []
 
 # samples perturbations from a data_sample (vector) by choosing a random number of random features from the original
 # sample and setting the non-chosen features to 0
@@ -24,6 +25,10 @@ def sample_data_points(data_sample, no_samples):
         # in the non-sparse case we save the perturbation directly after creation
         samples = np.zeros(shape=(no_samples,) + data_sample.shape, dtype=data_sample.dtype)
     non_zeros = np.nonzero(data_sample)
+
+
+    zero_index.append(list(non_zeros))
+
     # if data_sample is a (sparse) vector each nonzero index appears exactly once in the non_zeros
     if is_sparse:
         no_nonzero_entries = len(non_zeros[0])
@@ -119,12 +124,17 @@ def perturbation_block_to_regression_sample(nonzero_tuple):
 # takes (test) data and computes perturbations and the labels of the perturbations aswell as a linear representation of
 # the perturbation data. Delete specifies if the non-selected features of the perturbations will be deleted
 # or (if false) set to zero.
-def perturbation_pipeline(data, model, no_perturbations_per_sample, save_path, save_perturbations, delete):
+def perturbation_pipeline(data, model, no_perturbations_per_sample, save_path, save_perturbations, delete,
+                          progress_callback=None):
     seed = 40
     np.random.seed(seed)
     no_samples = data.shape[0] if not type(data) is list else len(data)
     all_labels, all_linregs, all_perturbations = [], [], []
     print('Computing perturbations for {} samples ...'.format(no_samples))
+
+    # Define the iteration variable i outside the loop
+    i = 0
+
     for data_sample in tqdm(data):
         if len(data_sample.shape) < 3 and delete:
             print('Error. Delete = 1 is only allowed for sequential data!')
@@ -139,11 +149,20 @@ def perturbation_pipeline(data, model, no_perturbations_per_sample, save_path, s
             labels = get_classification(model, perturbations_deleted)
         else:
             labels = get_classification(model, perturbations)
+
         all_labels.append(labels)
         all_linregs.append(perturbation_block_to_regression_sample(perturbations.nonzero()))
+
         if save_perturbations:
             all_perturbations.append(perturbations)
+
+        # Increase the iteration variable and call the progress_callback function
+        i += 1
+        if progress_callback:
+            progress_callback(i, no_samples)
+
     np.save(os.path.join(save_path, 'perturbation_labels_seed_{}.npy'.format(seed)), np.array(all_labels))
+    np.save(os.path.join(save_path, 'zero_index2.npy'), np.array(zero_index, dtype=object))
     pkl.dump(all_linregs, open(os.path.join(save_path, 'linreg_representations_seed_{}.pkl'.format(seed)), 'wb'))
     if save_perturbations:
         if type(data) is list:
@@ -155,7 +174,6 @@ def perturbation_pipeline(data, model, no_perturbations_per_sample, save_path, s
         else:
             np.save(os.path.join(save_path, 'perturbation_data_seed_{}.npy'.format(seed)), np.array(all_perturbations))
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Perturbation sampling process for lemna algorithm.')
     parser.add_argument('data_path', type=str, help='Path to data structure containing data samples.')
@@ -163,7 +181,7 @@ if __name__ == '__main__':
                         help='Path to a keras model (*.hdf5) that can be loaded with model.load().')
     parser.add_argument('save_path', type=str, help='Where to store the results.')
     parser.add_argument('no_perturbations', type=int, help='How many perturbations of each sample will be created.')
-    parser.add_argument('--save_perturbations', type=int, default=0, help='If 1 the real perturbations (not only the'
+    parser.add_argument('--save_perturbations', type=int, default=1, help='If 1 the real perturbations (not only the'
                                                                           'binary representation of them) will be saved. This can be useful'
                                                                           'for debugging but can use a lot of memory.')
     parser.add_argument('--delete', type=int, default=0, help='If 1, features that are not selected for a perturbation'

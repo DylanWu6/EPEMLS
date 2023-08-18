@@ -9,14 +9,14 @@ from keras.layers import Dense, Conv1D, Embedding, GlobalMaxPooling1D
 from keras_preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 from keras.callbacks import ModelCheckpoint
-from config import *
+from .config import *
 from tensorflow import Graph
 
 # import torch67tty
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 sys.path.append('../../utils/')
-from custom_metrics import custom_true_positive_metric, custom_false_positive_metric
+# from custom_metrics import custom_true_positive_metric, custom_false_positive_metric
 
 
 # sorts a list of filenames in uprising order with respect to the number of tokens in the files
@@ -52,9 +52,9 @@ def get_damd_cnn(no_tokens, final_nonlinearity='softmax'):
     no_labels = 2
     model = Sequential()
     model.add(Embedding(input_dim=no_tokens + 1, output_dim=embedding_dimensions))
-    model.add(Conv1D(filters=no_convolutional_filters, kernel_size=kernel_size, padding='valid', activation='relu'))
+    model.add(Conv1D(filters=no_convolutional_filters, kernel_size=kernel_size, padding='valid', activation='sigmoid'))
     model.add(GlobalMaxPooling1D())
-    model.add(Dense(number_of_dense_units, activation='relu'))
+    model.add(Dense(number_of_dense_units, activation='sigmoid'))
     model.add(Dense(no_labels, activation=final_nonlinearity))
     print(model.summary())
     return model
@@ -85,14 +85,16 @@ def train_network_batchwise(data_path, network, no_epochs, batch_size, testset_s
             acc_test.append(res[1])
         print('Test accuracy after {} epochs: {}:'.format(j + 1, np.mean(acc_test)))
 
-        network.save('models/damd_model_%d.pb' % j)
+        network.save('model-sigmoid/damd_model_%d.pb' % j)
 
-
-if __name__ == '__main__':
+def damd_training():
     graph = Graph()
     with graph.as_default():
-        damd_model = get_damd_cnn(no_tokens)
+        damd_model = get_damd_cnn(no_tokens,final_nonlinearity="sigmoid")
 
         # torch.save(damd_model, "model.pt")
 
         train_network_batchwise(token_path, damd_model, epochs, batch_size, testset_size)
+
+if __name__ == '__main__':
+    damd_training()
